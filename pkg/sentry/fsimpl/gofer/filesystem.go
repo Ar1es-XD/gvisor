@@ -1173,6 +1173,15 @@ func (d *dentry) open(ctx context.Context, rp *vfs.ResolvingPath, opts *vfs.Open
 			})
 			return nil, linuxerr.EPERM
 		}
+	case linux.S_IFCHR:
+		switch d.inode.fs.opts.charDevicePolicy {
+		case charDevEmulatedOnly:
+			return rp.VirtualFilesystem().OpenDeviceSpecialFile(ctx, mnt, &d.vfsd, vfs.CharDevice, d.inode.rdevMajor, d.inode.rdevMinor, opts)
+		case charDevPreferEmulated:
+			if rp.VirtualFilesystem().IsDeviceRegistered(vfs.CharDevice, d.inode.rdevMajor, d.inode.rdevMinor) {
+				return rp.VirtualFilesystem().OpenDeviceSpecialFile(ctx, mnt, &d.vfsd, vfs.CharDevice, d.inode.rdevMajor, d.inode.rdevMinor, opts)
+			}
+		}
 	}
 
 	if vfd == nil {
